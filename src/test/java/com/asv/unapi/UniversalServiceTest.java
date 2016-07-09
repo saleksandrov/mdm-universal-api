@@ -12,7 +12,6 @@ import static org.junit.Assert.assertTrue;
  */
 public class UniversalServiceTest extends SearchTest{
 
-
     @Test
     public void testGetById() {
         String gid = "7000002";
@@ -48,6 +47,5 @@ public class UniversalServiceTest extends SearchTest{
         assertTrue(srv.getOkved2().getPositionCode().equals(newPositionCode));
 
     }
-
 
 }
