@@ -1,4 +1,4 @@
-package com.asv.unapi.model;
+package com.asv.example.model;
 
 import com.asv.unapi.service.annotation.MdmField;
 import com.asv.unapi.service.annotation.MdmTable;

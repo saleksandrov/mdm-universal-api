@@ -50,6 +50,13 @@
         </dependency>
 
         <dependency>
+            <groupId>mdm-protocol</groupId>
+            <artifactId>mdm-protocol</artifactId>
+            <version>1.0</version>
+        </dependency>
+
+
+        <dependency>
             <groupId>mdm-extension</groupId>
             <artifactId>mdm-extension</artifactId>
             <version>1.0</version>
