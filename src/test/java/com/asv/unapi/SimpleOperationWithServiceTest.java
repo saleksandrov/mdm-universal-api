@@ -14,7 +14,7 @@ import static org.junit.Assert.assertTrue;
  * @since 25.03.2016
  */
 @Ignore
-public class UniversalServiceTest extends BaseMdmTest {
+public class SimpleOperationWithServiceTest extends BaseMdmTest {
 
     @Test
     public void testGetById() {

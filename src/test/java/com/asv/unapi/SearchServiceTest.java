@@ -17,7 +17,7 @@ import static org.junit.Assert.*;
  * @since 28.06.2016
  */
 @Ignore
-public class SearchTest extends BaseMdmTest {
+public class SearchServiceTest extends BaseMdmTest {
 
     @Test
     public void testSearchByParams() {
