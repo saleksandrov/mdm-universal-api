@@ -2,15 +2,19 @@ package com.asv.unapi;
 
 import com.asv.example.model.OKVED2;
 import com.asv.example.model.Service;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertTrue;
 
 /**
+ * Test depends on MDM repository structure. By default all test are ignored.
+ *
  * @author alexandrov
  * @since 25.03.2016
  */
-public class UniversalServiceTest extends SearchTest{
+@Ignore
+public class UniversalServiceTest extends BaseMdmTest {
 
     @Test
     public void testGetById() {

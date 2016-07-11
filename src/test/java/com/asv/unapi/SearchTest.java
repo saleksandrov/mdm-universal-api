@@ -1,14 +1,8 @@
 package com.asv.unapi;
 
-import com.asv.config.Constants;
-import com.asv.tx.UserSessionManager;
-import com.asv.tx.destination.LocalDestination;
 import com.asv.example.model.Service;
 import com.asv.example.model.UOM;
-import com.asv.unapi.service.UniversalFactory;
-import com.asv.unapi.service.UniversalRepoService;
-import org.junit.After;
-import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.HashMap;
@@ -17,24 +11,13 @@ import java.util.List;
 import static org.junit.Assert.*;
 
 /**
+ * Test depends on MDM repository structure. By default all test are ignored.
+ *
  * @author alexandrov
  * @since 28.06.2016
  */
-public class SearchTest {
-
-    UniversalRepoService<Service> srvService;
-
-    @Before
-    public void setUpConnection() {
-        UserSessionManager.initUserSession(new LocalDestination("host", "REPO", Constants.REGION_CODE, "user"), "pass");
-        UniversalFactory factory = UniversalFactory.getInstance();
-        srvService = factory.getService(Service.class);
-    }
-
-    @After
-    public void testSearch() {
-         UserSessionManager.closeSession();
-    }
+@Ignore
+public class SearchTest extends BaseMdmTest {
 
     @Test
     public void testSearchByParams() {
