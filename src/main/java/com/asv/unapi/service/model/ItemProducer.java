@@ -1,6 +1,7 @@
 package com.asv.unapi.service.model;
 
 import com.asv.unapi.service.annotation.MdmField;
+import com.asv.unapi.service.annotation.MdmParent;
 import com.asv.unapi.service.util.Assert;
 import com.sap.mdm.data.Record;
 import com.asv.unapi.service.annotation.MdmTable;
@@ -15,6 +16,8 @@ public class ItemProducer {
     private final Map<String, Field> fieldsWithMdmCodes = new HashMap<String, Field>();
     private final Map<String, Field> fieldsWithFieldsNames = new HashMap<String, Field>();
     private final Map<String, String> lookupFieldsWithTablenames = new HashMap<String, String>();
+
+    private Field parentField;
 
     private final Item item;
 
@@ -35,7 +38,11 @@ public class ItemProducer {
                 if (annotation.type() == Item.Type.LOOKUP) {
                     lookupFieldsWithTablenames.put(annotation.tableName(), mdmCode);
                 }
-
+            } else if (field.isAnnotationPresent(MdmParent.class)) {
+                if (parentField != null) {
+                    throw new RuntimeException("Item cannot have multiple parent");
+                }
+                parentField = field;
             }
         }
     }
@@ -87,6 +94,23 @@ public class ItemProducer {
                 // ignore
             }
         }
+    }
+
+    public Object getParentValue() {
+        Assert.notNull(parentField, "Cannot find parent");
+        try {
+            return parentField.get(item);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException("Cannot get parent value", e);
+        }
+    }
+
+    public String getParentKeyCode() {
+        return parentField.getAnnotation(MdmParent.class).keyCode();
+    }
+
+    public boolean hasParent() {
+        return parentField != null;
     }
 
     @SuppressWarnings("unchecked")

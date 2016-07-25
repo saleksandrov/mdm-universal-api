@@ -1,7 +1,9 @@
 package com.asv.unapi.service;
 
+import com.sap.mdm.commands.CommandException;
 import com.sap.mdm.data.MdmValueTypeException;
 import com.sap.mdm.data.Record;
+import com.sap.mdm.data.RecordFactory;
 import com.sap.mdm.data.RecordResultSet;
 import com.sap.mdm.extension.data.RecordEx;
 import com.sap.mdm.ids.FieldId;
@@ -222,6 +224,16 @@ public class UniversalRepoServiceImpl<T extends Item> implements UniversalRepoSe
         }
     }
 
+    public void delete(T t) {
+        Assert.notNull(t.getOriginalRecord(), "Original record cannot be null");
+
+        try {
+            baseDAO.deleteRecord(t.getOriginalRecord());
+        } catch (ConnectionException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     @Override
     @SuppressWarnings("unchecked")
     public void saveBean(T t) {
@@ -288,6 +300,45 @@ public class UniversalRepoServiceImpl<T extends Item> implements UniversalRepoSe
             throw new RuntimeException("Cannot save record", e);
         }
 
+    }
+
+    public void create(T t) {
+        ItemProducer itemProducer = ItemProducer.parse(t);
+        String tableName = itemProducer.getTableName();
+        Record emptyRecord = RecordFactory.createEmptyRecord(baseDAO.getSchema().getTableId(tableName));
+        Map<String, Object> simpleFieldValues = itemProducer.getSimpleFieldValues(true);
+
+        for (String key : simpleFieldValues.keySet()) {
+            FieldProperties field = baseDAO.getField(tableName, key);
+            Object value = simpleFieldValues.get(key);
+            try {
+                emptyRecord.setFieldValue(field.getId(), mapper.mapBeanTypeToMdm(value));
+            } catch (MdmValueTypeException e) {
+                throw new RuntimeException(String.format("Cannot map bean value to mdm type value = %s", value), e);
+            }
+
+        }
+        try {
+            Record parentRecord = null;
+            if (itemProducer.hasParent()) {
+                String keyCode = itemProducer.getParentKeyCode();
+                Object value = itemProducer.getParentValue();
+
+                if (value != null) {
+                    RecordResultSet recordResultSet = baseDAO.getRecordsByFieldValue(tableName, keyCode, value);
+                    if (recordResultSet.getRecords().length > 1) {
+                        throw new RuntimeException(String.format("Found to many records in table=%s by keyCode=%s value=%s", tableName, keyCode, value));
+                    }
+                    parentRecord = recordResultSet.getRecord(0);
+                }
+
+            }
+
+            Record record = baseDAO.createRecord(emptyRecord, parentRecord != null ? parentRecord.getId() : null);
+            itemProducer.setOriginalRecord(record);
+        } catch (Exception e) {
+            throw new RuntimeException("Cannot create record", e);
+        }
     }
 
     @Override

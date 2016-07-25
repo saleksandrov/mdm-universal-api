@@ -845,7 +845,7 @@ public class BaseMdmDAO {
         return command2.getAttributes();
     }
 
-    public void createRecord(Record record, RecordId parentRecordId) throws CommandException, ConnectionException {
+    public Record createRecord(Record record, RecordId parentRecordId) throws CommandException, ConnectionException {
         CreateRecordCommand command = new CreateRecordCommand(getUserSessionContext());
         command.setRecord(record);
 
@@ -853,6 +853,7 @@ public class BaseMdmDAO {
             command.setParentRecordId(parentRecordId);
         }
         command.execute();
+        return command.getRecord();
     }
 
     public void updateRecord(Record record) throws ConnectionException {

@@ -13,6 +13,7 @@ import java.lang.annotation.*;
 @Retention(value = RetentionPolicy.RUNTIME)
 @Inherited
 public @interface MdmField {
+
     String code();
 
     String tableName() default "unknown";
@@ -22,6 +23,7 @@ public @interface MdmField {
     Class<? extends Item> implClass() default Item.class;
 
     boolean updatable() default true;
+
 }
 
 

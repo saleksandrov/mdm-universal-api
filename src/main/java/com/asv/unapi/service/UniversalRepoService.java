@@ -49,7 +49,7 @@ public interface UniversalRepoService<T extends Item> {
 
     /**
      * Method stores only first level of fields of the type T. Inner type are not supported.
-     * Currently it supports only simple type od fields
+     * Currently it supports only simple type of fields
      * like ({@link Integer}, {@link String}, {@link Boolean} and so on) and types that maps to single MDM type Lookup.
      * Tuples currently don't supported.
      * Collections type are not supported
@@ -57,5 +57,20 @@ public interface UniversalRepoService<T extends Item> {
      * @param t bean class to save
      */
     void saveBean(T t);
+
+    /**
+     * Create MDM Record based on bean.
+     * Currently only simple values are supported
+     *
+     * @param t bean to create
+     */
+    void create(T t);
+
+    /**
+     * Delete MDM record based on bean
+     *
+     * @param t bean to delete
+     */
+    void delete(T t);
 
 }
