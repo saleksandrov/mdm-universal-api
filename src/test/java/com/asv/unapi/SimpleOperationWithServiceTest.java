@@ -13,7 +13,6 @@ import static org.junit.Assert.assertTrue;
  * @author alexandrov
  * @since 25.03.2016
  */
-@Ignore
 public class SimpleOperationWithServiceTest extends BaseMdmTest {
 
     @Test

@@ -16,6 +16,9 @@ public class Service extends Item {
     @MdmField(code = "ShortName")
     private String name;
 
+    @MdmField(code = "FullName")
+    private String fullName;
+
     @MdmField(code = "GID", updatable = false)
     private String id;
 
@@ -33,6 +36,14 @@ public class Service extends Item {
 
     @MdmField(code = "WorkAndServicesClassifier", tableName = "WorkAndServicesClassifier", type = Type.LOOKUP, updatable = false)
     private SrvClassifier classifier;
+
+    public String getFullName() {
+        return fullName;
+    }
+
+    public void setFullName(String fullName) {
+        this.fullName = fullName;
+    }
 
     public UOM getUom() {
         return uom;

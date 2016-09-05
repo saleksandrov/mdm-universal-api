@@ -22,6 +22,13 @@ public class UOM extends Item {
     @MdmField(code = "CodeOKEI", tableName = "OKEI", type = Type.LOOKUP)
     public OKEI okei;
 
+    public UOM() {
+    }
+
+    public UOM(String symbol) {
+        this.symbol = symbol;
+    }
+
     public Integer getSortPriority() {
         return sortPriority;
     }

@@ -19,7 +19,6 @@ import static org.junit.Assert.*;
  * @author alexandrov
  * @since 28.06.2016
  */
-@Ignore
 public class SearchServiceTest extends BaseMdmTest {
 
     @Test
