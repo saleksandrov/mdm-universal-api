@@ -661,7 +661,6 @@ public class BaseMdmDAO {
         return resultSet;
     }
 
-
     public RecordResultSet getRecordsByFieldValue(String tableName, Hashtable data, boolean isOrSearch)
             throws ConnectionException {
         Search search = new Search(getTableId(tableName));
@@ -687,10 +686,6 @@ public class BaseMdmDAO {
             throw new RuntimeException(e);
         }
         RecordResultSet resultSet = command.getRecords();
-        if (resultSet.getCount() < 1) {
-            return null;
-        }
-
         return resultSet;
     }
 

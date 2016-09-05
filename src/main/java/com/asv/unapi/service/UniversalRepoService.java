@@ -18,9 +18,9 @@ public interface UniversalRepoService<T extends Item> {
     T getBeanByInternalId(int internalId, String[] supportingTables);
 
     /**
-     * Search bean by primary key. Searches records in checkout and not checkout status.
-     * If record is checked out then the method returns checked out version of record.
-     * If not method returns original version of record.
+     *  Search bean by primary key. Searches records in checkout and not checkout status.
+     *  If record is checked out then the method returns checked out version of record.
+     *  If not method returns original version of record.
      *
      * @param idFieldCode
      * @param idFieldValue
@@ -32,26 +32,29 @@ public interface UniversalRepoService<T extends Item> {
     /**
      * Performs search by simple (not lookup) fields
      *
-     * @param data             Mdmcodes and values to search
+     * @param data Mdmcodes and values to search
      * @param supportingTables Needed for constucting bean by record. Used for populating bean inner classes.
-     * @return found mdm records mapped to bean
+     * @return
      */
     List<T> searchBeansByFilter(Map<String, Object> data, String[] supportingTables);
 
     /**
      * Performs search by bean patterns. Only simple fields and single lookup of first level are supported
      *
+     *
      * @param pattern
      * @param supportingTables
-     * @return found mdm record mapped to bean
+     * @return
      */
     List<T> searchBeanByPattern(T pattern, String[] supportingTables);
 
     /**
+     *
      * Method stores only first level of fields of the type T. Inner type are not supported.
-     * Currently it supports only simple type of fields
+     * Currently it supports only simple type od fields
      * like ({@link Integer}, {@link String}, {@link Boolean} and so on) and types that maps to single MDM type Lookup.
      * Tuples currently don't supported.
+     * This method performs search request to MDM for each Lookup field.
      * Collections type are not supported
      *
      * @param t bean class to save
@@ -60,11 +63,28 @@ public interface UniversalRepoService<T extends Item> {
 
     /**
      * Create MDM Record based on bean.
-     * Currently only simple values are supported
+     * Currently it supports only simple type od fields
+     * like ({@link Integer}, {@link String}, {@link Boolean} and so on) and types that maps to single MDM type Lookup.
+     * This method performs search request to MDM for each Lookup field.
      *
      * @param t bean to create
      */
     void create(T t);
+
+    /**
+     * Creation method for mass operation.
+     * Currently it supports only simple type od fields
+     * like ({@link Integer}, {@link String}, {@link Boolean} and so on) and types that maps to single MDM type Lookup.
+     * For performance reason it uses cache for Lookup values.
+     * It performs search request for Lookup Value only once and later use cache to retrieve the same value.
+     * This method is not thread safe.
+     *
+     *
+     * @param items
+     * @return
+     */
+    int create(List<T> items);
+
 
     /**
      * Delete MDM record based on bean

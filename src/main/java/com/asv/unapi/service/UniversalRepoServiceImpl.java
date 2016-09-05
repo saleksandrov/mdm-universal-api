@@ -1,5 +1,6 @@
 package com.asv.unapi.service;
 
+import com.asv.unapi.service.model.HierarchyItem;
 import com.sap.mdm.commands.CommandException;
 import com.sap.mdm.data.MdmValueTypeException;
 import com.sap.mdm.data.Record;
@@ -9,6 +10,7 @@ import com.sap.mdm.extension.data.RecordEx;
 import com.sap.mdm.ids.FieldId;
 import com.sap.mdm.ids.RecordId;
 import com.sap.mdm.ids.TableId;
+import com.sap.mdm.internal.protocol.commands.mdspublic.RequestEventsOnRepositoryCommand;
 import com.sap.mdm.net.ConnectionException;
 import com.sap.mdm.schema.FieldProperties;
 import com.sap.mdm.schema.RepositorySchema;
@@ -37,6 +39,27 @@ public class UniversalRepoServiceImpl<T extends Item> implements UniversalRepoSe
     private final MdmTypesMapper mapper;
 
     private final Class<T> typeParameterClass;
+    private final LookupCache lookupCache = new LookupCache();
+
+
+    private class LookupCache {
+
+        private final Map<String, Record> lookupCacheMap = new HashMap<String, Record>();
+
+        void put(String key, Record value) {
+            lookupCacheMap.put(key, value);
+        }
+
+        Record get(String key) {
+            return lookupCacheMap.get(key);
+        }
+
+        void clear() {
+            lookupCacheMap.clear();
+        }
+
+    }
+
 
     public UniversalRepoServiceImpl(Class<T> typeParameterClass, BaseMdmDAO baseDAO, MdmTypesMapper mapper) {
         this.baseDAO = baseDAO;
@@ -253,7 +276,6 @@ public class UniversalRepoServiceImpl<T extends Item> implements UniversalRepoSe
         itemProducer.setOriginalRecord(originalRecord);
 
         Map<String, Object> simpleFieldValues = itemProducer.getSimpleFieldValues();
-        Map<String, Map<String, Object>> lookupFieldValues = itemProducer.getLookupFieldValues();
         String rootTableName = itemProducer.getTableName();
 
         // save simple fields
@@ -267,32 +289,7 @@ public class UniversalRepoServiceImpl<T extends Item> implements UniversalRepoSe
                 throw new RuntimeException(String.format("Cannot set value (%s) to field (%s) of the record ", mdmValue, mdmCode), e);
             }
         }
-
-        // save lookup fields
-        // find new Lookup Record and add it to original Record
-        for (String tableName : lookupFieldValues.keySet()) {
-            Map<String, Object> simpleValuesOfLookup = lookupFieldValues.get(tableName);
-
-            // perform search for lookup
-            Hashtable data = new Hashtable();
-            for (String mdmCodeOfLookup : simpleValuesOfLookup.keySet()) {
-                FieldProperties fieldProperties = baseDAO.getField(tableName, mdmCodeOfLookup);
-                data.put(fieldProperties, simpleValuesOfLookup.get(mdmCodeOfLookup));
-            }
-            try {
-                RecordResultSet recordsByFieldValue = baseDAO.getRecordsByFieldValue(tableName, data, false);
-                if (recordsByFieldValue.getRecords().length > 1) {
-                    throw new RuntimeException(String.format("Found to many lookup records in table=%s by fields=%s", tableName, data));
-                }
-                Record lookupRecord = recordsByFieldValue.getRecords()[0];
-                FieldProperties fieldProperties = baseDAO.getField(rootTableName, itemProducer.getMdmCodeOfLookupByTablename(tableName));
-                originalRecord.setFieldValue(fieldProperties.getId(), new LookupValue(lookupRecord.getId()));
-            } catch (ConnectionException e) {
-                throw new RuntimeException(String.format("Cannot find Lookup record in table=%s by fields=%s", tableName, data), e);
-            } catch (MdmValueTypeException e) {
-                throw new RuntimeException(String.format("Cannot set Lookup record to record. Lookup table=%s", tableName), e);
-            }
-        }
+        foundAndSetLookupRecord(originalRecord, itemProducer, false);
 
         try {
             baseDAO.updateRecord(originalRecord);
@@ -302,7 +299,87 @@ public class UniversalRepoServiceImpl<T extends Item> implements UniversalRepoSe
 
     }
 
+    private void foundAndSetLookupRecord(Record originalRecord, ItemProducer itemProducer, boolean useCache) {
+        String rootTableName = itemProducer.getTableName();
+        Map<String, Map<String, Object>> lookupFieldValues = itemProducer.getLookupFieldValues();
+        // save lookup fields
+        // find new Lookup Record and add it to original Record
+        for (String tableName : lookupFieldValues.keySet()) {
+            Map<String, Object> simpleValuesOfLookup = lookupFieldValues.get(tableName);
+
+            if (useCache) {
+                // We know that lookups values are stored in LinkedHashMap
+                // That meas it support ORDER and we can use it in constructing cache key
+                String cacheKey = constructLookupCacheKey(tableName, simpleValuesOfLookup);
+                Record lookupRecord = this.lookupCache.get(cacheKey);
+                if (lookupRecord != null) {
+                    FieldProperties fieldProperties = baseDAO.getField(rootTableName, itemProducer.getMdmCodeOfLookupByTablename(tableName));
+                    try {
+                        originalRecord.setFieldValue(fieldProperties.getId(), new LookupValue(lookupRecord.getId()));
+                        continue;
+                    } catch (MdmValueTypeException e) {
+                        throw new RuntimeException(String.format("Cannot set Lookup record to record. Lookup table=%s", tableName), e);
+                    }
+                }
+            }
+
+            // perform search for lookup
+            Hashtable data = new Hashtable();
+            for (String mdmCodeOfLookup : simpleValuesOfLookup.keySet()) {
+                FieldProperties fieldProperties = baseDAO.getField(tableName, mdmCodeOfLookup);
+                Object value = simpleValuesOfLookup.get(mdmCodeOfLookup);
+                if (value != null) data.put(fieldProperties, value);
+            }
+            try {
+                if (data.size() == 0) {
+                    continue;
+                }
+                RecordResultSet recordsByFieldValue = baseDAO.getRecordsByFieldValue(tableName, data, false);
+                if (recordsByFieldValue.getRecords().length > 1) {
+                    throw new RuntimeException(String.format("Found to many lookup records in table=%s by fields=%s", tableName, data));
+                } else if (recordsByFieldValue.getRecords().length == 0) {
+                    // not found lookup
+                    continue;
+                }
+                Record lookupRecord = recordsByFieldValue.getRecords()[0];
+                FieldProperties fieldProperties = baseDAO.getField(rootTableName, itemProducer.getMdmCodeOfLookupByTablename(tableName));
+                originalRecord.setFieldValue(fieldProperties.getId(), new LookupValue(lookupRecord.getId()));
+                if (useCache) {
+                    String cacheKey = constructLookupCacheKey(tableName, simpleValuesOfLookup);
+                    this.lookupCache.put(cacheKey, lookupRecord);
+                }
+            } catch (ConnectionException e) {
+                throw new RuntimeException(String.format("Cannot find Lookup record in table=%s by fields=%s", tableName, data), e);
+            } catch (MdmValueTypeException e) {
+                throw new RuntimeException(String.format("Cannot set Lookup record to record. Lookup table=%s", tableName), e);
+            }
+        }
+    }
+
+    private String constructLookupCacheKey(String tableName, Map<String, Object> simpleValuesOfLookup) {
+        return tableName + simpleValuesOfLookup;
+    }
+
+    public int create(List<T> items) {
+        int created = 0;
+        try {
+            for (T item : items) {
+                create(item, true);
+                created++;
+            }
+        } finally {
+            // empty cache
+
+        }
+        return created;
+    }
+
     public void create(T t) {
+        create(t, false);
+    }
+
+
+    public void create(T t, boolean useCache) {
         ItemProducer itemProducer = ItemProducer.parse(t);
         String tableName = itemProducer.getTableName();
         Record emptyRecord = RecordFactory.createEmptyRecord(baseDAO.getSchema().getTableId(tableName));
@@ -318,8 +395,12 @@ public class UniversalRepoServiceImpl<T extends Item> implements UniversalRepoSe
             }
 
         }
+        // lookup fields
+        foundAndSetLookupRecord(emptyRecord, itemProducer, useCache);
         try {
             Record parentRecord = null;
+            // два сопсоба указанаия парента через поле parendId и через иерархию
+            // второй способ будет работать быстрее при массовой вставке, т.к. он предполагает что Record у рута уже получен
             if (itemProducer.hasParent()) {
                 String keyCode = itemProducer.getParentKeyCode();
                 Object value = itemProducer.getParentValue();
@@ -330,6 +411,16 @@ public class UniversalRepoServiceImpl<T extends Item> implements UniversalRepoSe
                         throw new RuntimeException(String.format("Found to many records in table=%s by keyCode=%s value=%s", tableName, keyCode, value));
                     }
                     parentRecord = recordResultSet.getRecord(0);
+                }
+
+            } else if (t instanceof HierarchyItem) {
+                HierarchyItem hi = (HierarchyItem) t;
+                Item parent = hi.getParent();
+                if (parent != null) {
+                    parentRecord = parent.getOriginalRecord();
+                    if (parentRecord == null) {
+                        throw new RuntimeException("Original record of parent cannot be null");
+                    }
                 }
 
             }
