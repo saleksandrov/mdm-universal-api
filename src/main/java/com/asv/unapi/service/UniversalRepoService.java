@@ -56,6 +56,7 @@ public interface UniversalRepoService<T extends Item> {
      * Tuples currently don't supported.
      * This method performs search request to MDM for each Lookup field.
      * Collections type are not supported
+     * If you don't want update field use flag updatable = false in field annotation
      *
      * @param t bean class to save
      */
